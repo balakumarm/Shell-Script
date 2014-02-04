@@ -1,0 +1,418 @@
+
+Table of Contents
+ 
+ 
+11.05 Count lines
+11.10 Add (Insert) -  Line numbers
+11.15              -  Appearance:   -  Blank lines
+11.16                               -  Align
+11.17                               -  Offset
+11.18                               -  Commas
+11.20 Substitution
+11.30 Conversion   -  Join lines
+11.32              -  Reverse
+11.34              -  Capitalize
+11.40 Printing     -  Lines  -  Absolute
+11.42                        -  Relative
+11.44                        -  Conditional:  -  Expression
+11.45                                         -  Match
+11.46                                         -  Quantity
+11.49              -  Paragraph
+11.50 Deletion     -  Delete the last line of each paragraph
+11.52              -  Blank part of each line
+11.54              -  Duplicate lines
+11.56              -  Blank lines
+11.60 Notes:       -  Typical use
+11.65              -  Special applications
+11.70              -  Use of '\t' in sed scripts
+11.75              -  Optimize for speed
+11.80              -  Versions of sed
+ 
+-Top-
+ 
+ 
+                                                                           
+<<>>                                                                  -Top-
+11.05 Count lines
+                              #1          ##1
+ sed -n "$=" #1>##1.tmp       aaa         4
+                              bbb
+ 
+                              ccc
+ 
+<<>>                                                                  -Top-
+11.10 Insert line numbers
+ 
+ # number each line left alignment. (See note on '\t'.)
+ sed = #1 | sed "N;s/\n/\t/" >##1
+ 
+ # number each line (right-aligned)
+ sed = #1 | sed "N;s/^/     /;s/ *\(.\{6,\}\)\n/\1  /" >##2
+ 
+ # number each not blank line
+ sed "/./=" #1 | sed "/./N;s/\n/ /" >##3
+ 
+            #1        ##1               ##2               ##3
+            ===       -----------       -----------       -----
+            aaa       1       aaa            1  aaa       1 aaa
+            bbb       2       bbb            2  bbb       2 bbb
+                      3                      3             
+            ccc       4       ccc            4  ccc       4 ccc
+ 
+ 
+ # Substitute with a line number. [Capitalize: Solution. January 18, 2000]
+ 
+<<>>                                                                  -Top-
+11.15 Add blank lines
+ 
+ # double space a file
+ sed G
+ 
+ # triple space a file
+ sed "G;G"
+ 
+ # add a blank line every 5 lines (after lines 5, 10, 15, 20, etc.)
+ sed "n;n;n;n;G;"
+ 
+<<>>                                                                  -Top-
+11.16 Align text
+ 
+ # Align text flush right on a 50-column width.
+ sed -e :a "s/^.\{1,49\}$/ &/;ta"
+ 
+ Note:
+ # The column width can't exceed more than 50 without the possibility of an
+ # error message: 'sed: infinite branch loop at line x'
+ 
+ # Center all text in the middle of a 50-column width.
+ # In method 1, spaces are significant.
+ # In method 2, spaces at the beginning of the line are discarded in
+ # centering the line, and no trailing spaces is add to the end of lines.
+ #
+ sed -e :a "s/^.\{1,48\}$/ & /;ta" #                     # method 1.
+ sed -e :a -e "s/^.\{1,48\}$/ &/;ta" -e "s/\( *\)\1/\1/" # method 2: ^Note.
+ 
+<<>>                                                                  -Top-
+11.17 Offset
+ 
+ # Insert 5 blank spaces at beginning of each line (make page offset)
+ sed "s/^/     /"
+ 
+<<>>                                                                  -Top-
+11.18 Add Commas
+ 
+ # Add commas to numeric strings, changing "1234567" to "1,234,567"
+ sed -e :a "s/\(.*[0-9]\)\([0-9]\{3\}\)/\1,\2/;ta"
+ 
+<<>>                                                                  -Top-
+11.20 Substitution
+ 
+ # substitute "foo" with "bar"
+ sed "s/foo/bar/" #           # replaces 1st instance on each line
+ sed "s/foo/bar/4" #          # replaces 4th instance on each line
+ sed "s/foo/bar/g" #          # replaces ALL instances
+ 
+ sed "/foo/s/foo/bar/g" #     # same but executes more quickly
+ sed "/baz/s/foo/bar/g" #     # ONLY for lines which contain "baz"
+ 
+ sed "/baz/!s/foo/bar/g" #    # EXCEPT for lines which contain "baz"
+ 
+ # substitute "1" with "L", "2" with "i" and so on...
+ sed "y/1234/List/" #         # replaces ALL instances
+ 
+ # substitute only for lines which contain foo_0
+ sed "/foo_0/ { s/foo_1/bar_1/g; s/foo_2/bar_2/g; }"
+ 
+<<>>                                                                  -Top-
+11.30 Join lines
+ 
+ sed "$!N;s/\n//" #                      # join pairs of lines side-by-side
+ sed :a;$!N;s/\n//;ta; INFILE > OUTFILE  # join all lines (use GNU SED)
+ 
+ # if a line ends with a K ............. then:
+ sed -e :a -e "/K$/N;s/\n//;ta" #        # append the next line to it
+ sed -e :a -e "/K$/N;s/\n/ /;ta" #       # - separate with 1 space
+ sed -e :a -e "/K$/N;s/.\n//;ta" #       # - delete the K
+ 
+ # if a line begins with a K ........... then:
+ sed -e :a -e "$!N;s/\nK/K/;ta" -e "P;D" # append it to the previous line
+ sed -e :a -e "$!N;s/\nK/ /;ta" -e "P;D" # - replace the K with 1 space
+ 
+ 
+ 
+@Echo off
+ Echo abc~123~def~456~ghi~789|sed "s/~/\n/g">#1
+ Rem  Wrote a new file #1. Now use it as input for testing some SED syntax:
+ 
+ sed "$!N;s/\n//"           #1>##1
+ sed "$!N;s/\n/ /"          #1>##2
+ sed "$!N;s/\n..//"         #1>##3
+ sed "$!N;s/\n[^ ]*//"      #1>##4
+ sed "$!N;s/\n..//;s/^..//" #1|sed =|sed "$!N;s/\n/ /">##5
+ 
+ Rem  See the five output files. (Pfe32 is just an editor)
+For %%v in ( Pause Pfe32 Exit ) do %%v ##1 ##2 ##3 ##4 ##5
+ 
+ sed -n "$!N;s/^\([^ ]* \)\(.*\)\(\n\)\([^ ]* \)\(.*\)$/\2\5\3\1\4/;
+ G;s/^\(.*\n\)\(.*\)\n\(.*\)$/\1\3\2/;s/^\(.*\n\)\([^ ]* \)/\2\1/;P;
+ s/^.*\n//;h" #{x}>##{x+3}
+ 
+ #1   #2
+ abc  1 abc
+ 123  2 123
+ def  3 def
+ 456  4 456
+ ghi  5 ghi
+ 789  6 789
+ 
+      ##1           ##2            ##3         ##4          ##5
+      ------        -------        ----        ---          ----
+ #1   abc123        abc 123        abc3        abc          1 c3
+      def456        def 456        def6        def          2 f6
+      ghi789        ghi 789        ghi9        ghi          3 i9
+      ----------    -----------    --------    ---------    --------
+ #2   1 abc2 123    1 abc 2 123    1 abc123    1 abc 123    1 abc123
+      3 def4 456    3 def 4 456    3 def456    3 def 456    2 def456
+      5 ghi6 789    5 ghi 6 789    5 ghi789    5 ghi 789    3 ghi789
+ 
+<<>>                                                                  -Top-
+11.32 Reverse
+ 
+ # reverse order of lines
+ sed "1!G;h;$!d" #            # method 1
+ sed -n "1!G;h;$p" #          # method 2
+ 
+ # reverse each character on the line
+ sed "/\n/!G;s/\(.\)\(.*\n\)/&\2\1/;//D;s/.//"
+ 
+<<>>                                                                  -Top-
+11.34 Capitalize
+ 
+@Echo off
+Rem Under Construction.
+Rem Goto/See •Solution. January 18, 2000•
+Set p1=s/$/aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ/;
+Set p2=s/\([a-z]\)\(.*\1\)\(.\)/\3\2\3/;
+Rem Set p3=s/aA[b-zB-Z]*$//;
+Set p3=s/.\{52\}$//;
+ 
+Sed "%p1% %p2% %p3%" #1>##1
+For %%v in (p1 p2 p3) do Set %%v=
+For %%v in (Pause Edit Cls Exit) do %%v ##1
+ 
+                     #1                 ##1
+                     abc def            Abc def
+                     Ghi jkl            GHi jkl
+                     3: end of file     3: End of file
+ 
+<<>>                                                                  -Top-
+11.40 Print line(s) - Absolute
+ 
+ # beginning at line 7, print every 4th line
+ sed -n "7,${p;n;n;n;}"
+ 
+ # print line number 7
+ sed 7!d #                    # method 1
+ sed 7q;d #                   # method 2
+ sed -n 7p #                  # method 3
+ 
+ # print lines 3-8 (inclusive)
+ sed 3,8!d #                  # method 1
+ sed -n 3,8p #                # method 2
+ 
+ # print all except lines 3-8
+ sed 3,8d
+ 
+ # print lines 9-EOF (inclusive)
+ sed 9,$!d
+ 
+<<>>                                                                  -Top-
+11.42 Print line(s) - Relative
+ 
+ sed q #                             # print the first line
+ sed 9q #                            # print the first 9 lines
+ sed 1,9d #                          # print all except the first 9
+ 
+ sed -e :a "$q;N;10,$D;ba" #         # print the last 9 lines
+ sed -e :a -e "$d;N;2,9ba" -e "P;D" ## print all except the last 9
+ sed -n -e :a -e "1,9!{P;N;D;};N;ba" # same
+ sed "$!N;$!D" #                     # print the last 2 lines
+ sed "$!d" #                         # print the last line
+ sed -n "$p"                         # same
+ 
+ sed "n;d" #                         # print all except every 2th line
+ 
+<<>>                                                                  -Top-
+Print line(s) - Conditional:
+ 
+11.44 - Expression
+ # print section of file from regular expression to the end of file
+ sed -n "/Regexp/,$p"
+ 
+ # print section of file between two regular expressions (inclusive)
+ sed -n "/Regexp_1/,/Regexp_2/p"
+ 
+ # print all except section between 2 regular expressions
+ sed "/Regexp_1/,/Regexp_2/d"
+ 
+11.45 - Match
+ # print only lines which match regexp
+ sed "/AA/!d; /BB/!d; /CC/!d" #             # AA, BB and CC (in any order)
+ sed "/AA.*BB.*CC/!d" #                     # AA, BB and CC (in that order)
+ sed -e "/AA/b" -e "/BB/b" -e "/CC/b" -e d ## AA, BB or CC
+ sed "/AA/!d" #                             # AA
+ sed -n "/AA/p"                             # same
+ 
+ # print 1 line of context before and after regexp with line number
+ sed -n -e "/AA/{=;x;1!p;g;$!N;p;D;}" -e h
+ 
+ # print only lines which do NOT match regexp AA
+ sed "/AA/d" #                              # method 1
+ sed -n "/AA/!p" #                          # method 2
+ 
+11.46 - Quantity
+ # print only lines of 65 characters or longer
+ sed -n "/^.\{65\}/p"
+ 
+ # print only lines of less than 65 characters.
+ sed "/^.\{65\}/d" #                        # method 1
+ sed -n "/^.\{65\}/!p" #                    # method 2
+ 
+<<>>                                                                  -Top-
+11.49 Paragraph
+ 
+ # print paragraph if it contains AA (blank line(s) separate paragraphs)
+ sed -e "/./{H;$!d;}" -e "x;/AA/!d;"
+ 
+ # print paragraph if it contains AA and BB and CC (in any order)
+ sed -e "/./{H;$!d;}" -e "x;/AA/!d;/BB/!d;/CC/!d"
+ 
+ # print paragraph if it contains AA or BB or CC
+ sed -e "/./{H;$!d;}" -e "x;/AA/b" -e "/BB/b" -e "/CC/b" -e d
+ 
+<<>>                                                                  -Top-
+11.50 Deletion
+ 
+ # delete the last line of each paragraph
+ sed -n "/^$/{p;h;};/./{x;/./p;}"
+ 
+11.52 Delete blank part of each line
+ sed "s/^[ \t]*//" #           # DEL leading blank (spaces, tabs) from FRONT
+ sed "s/[ \t]*$//" #           # DELete trailing blank from the END
+ sed "s/^[ \t]*//;s/[ \t]*$//" # delete both leading and trailing blank
+ 
+11.54 Delete duplicate lines
+ sed "$!N;/^\(.*\)\n\1$/!P;D" #                        # consecutive lines.
+ sed -n "G;s/\n/&&/;/^\([ -~]*\n\).*\n\1/d;s/\n//;h;P" # nonconsecutive:  
+                                                       # some time it fails
+ 
+11.56 Delete blank lines
+ sed "/^$/d" #                 # delete ALL blank lines
+ sed "/./!d" #                 # same
+ 
+ sed "/./,$!d" #               # DEL leading blank lines at TOP of file
+ sed -e :a "/^\n*$/N;/\n$/ba" ## DEL trailing blank lines at the EOF
+ 
+ sed "/^$/N;/\n$/N;//D" # delete CONSECUTIVE blank lines except the first 2
+                        # in each sequence. DEL all blank lines at the EOF.
+ 
+ sed "/^$/N;/\n$/D" #   # delete CONSECUTIVE blank lines except the first 1
+                        # in each sequence. DEL all blank lines at the EOF.
+ sed "/./,/^$/!d" #     #                   DEL all blank lines at the TOF:
+                                                             (Top-Of-File).
+<<>>                                                                  -Top-
+NOTES:
+11.60 Typical use
+ 
+Sed takes one or more editing commands and applies all of
+them, in sequence, to each line of input. After all the commands have
+been applied to the first input line, that line is output and a second
+input line is taken for processing, and the cycle repeats. The
+preceding examples assume that input comes from the standard input
+device (i.e, the console, normally this will be piped input). One or
+more filenames can be appended to the command line if the input does
+not come from stdin. Output is sent to stdout (the screen). Thus:
+ 
+ sed "10q" filename
+ sed "10q" filename > newfile      # redirects output to disk
+ 
+<<>>                                                                  -Top-
+11.65 Special applications  (PS. I have not tested all of these)
+ 
+ # remove nroff overstrikes (char, backspace) from man pages.
+ sed "s/.`echo \\\b`//g"    # double quotes required for Unix environment
+ sed "s/.^H//g"             # in bash/tcsh, press Ctrl-V and then Ctrl-H
+ sed "s/.\x08//g"           # hex expression for sed v1.5
+ 
+ # get Usenet/e-mail message header
+ sed "/^$/q"                # deletes everything after first blank line
+ 
+ # get Usenet/e-mail message body
+ sed "1,/^$/d"              # deletes everything up to first blank line
+ 
+ # get Subject header, but remove initial "Subject: " portion
+ sed "/^Subject: */!d; s///;q"
+ 
+ # get return address header
+ sed "/^Reply-To:/q; /^From:/h; /./d;g;q"
+ 
+ # parse out the address proper. Pulls out the e-mail address by itself
+ # from the 1-line return address header (see preceding script)
+ sed "s/ *(.*)//; s/>.*//; s/.*[:<] *//"
+ 
+ # add a leading angle bracket and space to each line (quote a message)
+ sed "s/^/> /"
+ 
+ # delete leading angle bracket & space from each line (unquote a message)
+ sed "s/^> //"
+ 
+ # remove most HTML tags (accommodates multiple-line tags)
+ sed -e :a -e "s/<[^>]*>//g;/</N;//ba"
+ 
+ # extract multi-part uuencoded binaries, removing extraneous header
+ # info, so that only the uuencoded portion remains. Files passed to
+ # sed must be passed in the proper order. Version 1 can be entered
+ # from the command line; version 2 can be made into an executable
+ # Unix shell script. (Modified from a script by Rahul Dhesi.)
+ #
+ sed "/^end/,/^begin/d" file1 file2 ... fileX | uudecode
+ 
+ # zip up each .TXT file individually, deleting the source file and
+ # setting the name of each .ZIP file to the basename of the .TXT file
+ # (under DOS: the "dir /b" switch returns bare filenames in all caps).
+ #
+ echo @Echo off> zipup.bat
+ Dir /b *.txt | sed "s/^\(.*\)\.TXT/pkzip -mo \1 \1.TXT/" >>zipup.bat
+ 
+<<>>                                                                  -Top-
+11.70 Use of '\t' in sed scripts
+ 
+For clarity in documentation, we have used
+the expression '\t' to indicate a tab character (0x09) in the scripts.
+However, most versions of sed do not recognize the '\t' abbreviation,
+so when typing these scripts from the command line, you should press
+the TAB key instead. '\t' is supported as a regular expression
+metacharacter in awk, perl, and in some implementations of sed.
+ 
+<<>>                                                                  -Top-
+11.75 Optimize for speed
+ 
+   sed "s/foo/bar/g" filename         # standard replace command
+   sed "/foo/s/foo/bar/g" filename    # executes more quickly
+ 
+On line selection or deletion in which you only need to output lines
+from the first part of the file, a "quit" command (q) in the script
+will drastically reduce processing time for large files. Thus:
+ 
+   sed -n "45,50p" filename           # print line nos. 45-50 of a file
+   sed -n "51q;45,50p" filename       # same, but executes much faster
+ 
+<<>>                                                                  -Top-
+11.80 Versions of sed
+ 
+Versions of sed do differ, and some slight syntax
+variation is to be expected. In particular, most do not support the
+use of labels (:name) or branch instructions (b,t) within editing
+commands, except at the end of those commands. We have used the syntax
+which will be portable to most users of sed, even though the
+more popular "GNU versions" of sed allow a more succinct syntax.
